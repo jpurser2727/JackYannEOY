@@ -10,29 +10,30 @@ gmaps = googlemaps.Client(api_key)
 # Define the place ID for the location you want to get reviews for
 place_id = 'ChIJ0Zk7Uz8sTIYR4xsLxj0X8Mk'
 
-# Define the fields you want to retrieve for each review
-review_fields = ['rating', 'text', 'time']
-
 # Define a function to handle pagination of results
-def get_all_results(results, next_page_token):
+def get_all_reviews(results, next_page_token):
     while next_page_token:
         try:
-            next_results = gmaps.places(place_id, page_token=next_page_token, fields=['reviews'])
-            results.extend(next_results['reviews'])
+            next_results = gmaps.place(place_id, fields=['reviews'], page_token=next_page_token)
+            if 'reviews' in next_results['result']:
+                results.extend(next_results['result']['reviews'])
             next_page_token = next_results.get('next_page_token')
-        except InvalidRequest:
-            # Wait and retry if we hit the API rate limit
-            time.sleep(2)
-            continue
+        except ApiError as e:
+            # Handle API request errors
+            print(f"API Error: {e}")
+            break
+        # Wait for a few seconds before making the next request
+        time.sleep(2)
     return results
 
 # Call the Places API to retrieve the first page of results
-first_results = gmaps.places(place_id, fields=['reviews'])
-all_results = first_results.get('reviews', [])
+first_results = gmaps.place(place_id, fields=['reviews'])
+result = first_results['result']
+all_reviews = result.get('reviews', [])
 
 # Handle pagination of results if there are multiple pages
-next_page_token = first_results.get('next_page_token')
-all_results = get_all_results(all_results, next_page_token)
+next_page_token = result.get('next_page_token')
+all_reviews = get_all_reviews(all_reviews, next_page_token)
 
 # Print out the reviews in a formatted JSON string
-print(json.dumps(all_results, indent=2))
+print(json.dumps(all_reviews, indent=2))
