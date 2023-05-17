@@ -3,11 +3,11 @@ from googlemaps.exceptions import InvalidRequest
 import json
 
 # Set up the API client
-api_key = 'YOUR_API_KEY_HERE'
+api_key = 'AIzaSyAs23gW_71NGisb2N1CzsfeXDsoafe1h2Y'
 gmaps = googlemaps.Client(api_key)
 
 # Define the place ID for the location you want to get reviews for
-place_id = 'PLACE_ID_HERE'
+place_id = 'ChIJ0Zk7Uz8sTIYR4xsLxj0X8Mk'
 
 # Define the fields you want to retrieve for each review
 review_fields = ['rating', 'text', 'time']
