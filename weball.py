@@ -1,6 +1,7 @@
 import googlemaps
-from googlemaps.exceptions import InvalidRequest
+from googlemaps.exceptions import ApiError
 import json
+import time
 
 # Set up the API client
 api_key = 'AIzaSyAs23gW_71NGisb2N1CzsfeXDsoafe1h2Y'
