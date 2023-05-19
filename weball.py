@@ -1,39 +1,88 @@
-import googlemaps
-from googlemaps.exceptions import ApiError
-import json
-import time
+import tkinter as tk
+from tkinter import messagebox
+from collections import defaultdict
 
-# Set up the API client
-api_key = 'AIzaSyAs23gW_71NGisb2N1CzsfeXDsoafe1h2Y'
-gmaps = googlemaps.Client(api_key)
+def analyze_reviews():
+    reviews = text_box.get("1.0", "end-1c")
+    keywords = ['cleanliness', 'service', 'atmosphere', 'staff', 'amenities']
 
-# Define the place ID for the location you want to get reviews for
-place_id = 'ChIJ0Zk7Uz8sTIYR4xsLxj0X8Mk'
+    ratings_per_keyword = {keyword: [] for keyword in keywords}
 
-# Define a function to handle pagination of results
-def get_all_reviews(results, next_page_token):
-    while next_page_token:
-        try:
-            next_results = gmaps.place(place_id, fields=['reviews'], page_token=next_page_token)
-            if 'reviews' in next_results['result']:
-                results.extend(next_results['result']['reviews'])
-            next_page_token = next_results.get('next_page_token')
-        except ApiError as e:
-            # Handle API request errors
-            print(f"API Error: {e}")
-            break
-        # Wait for a few seconds before making the next request
-        time.sleep(2)
-    return results
+    for review in reviews.split('\n'):
+        for keyword in keywords:
+            if keyword in review.lower():
+                rating = extract_rating(review)
+                if rating is not None:
+                    ratings_per_keyword[keyword].append(rating)
 
-# Call the Places API to retrieve the first page of results
-first_results = gmaps.place(place_id, fields=['reviews'])
-result = first_results['result']
-all_reviews = result.get('reviews', [])
+    suggestions = []
+    for keyword, ratings in ratings_per_keyword.items():
+        if ratings:
+            average_rating = sum(ratings) / len(ratings)
+            suggestions.append(f"- Improve {keyword}: {average_rating:.2f} stars.")
 
-# Handle pagination of results if there are multiple pages
-next_page_token = result.get('next_page_token')
-all_reviews = get_all_reviews(all_reviews, next_page_token)
+    if suggestions:
+        message = "Suggestions to improve the location:\n\n" + "\n".join(suggestions)
+    else:
+        positive_feedback, negative_feedback = generate_feedback(reviews, keywords)
+        if negative_feedback:
+            message = negative_feedback
+        else:
+            message = positive_feedback
 
-# Print out the reviews in a formatted JSON string
-print(json.dumps(all_reviews, indent=2))
+    messagebox.showinfo("Review Analysis", message)
+
+def extract_rating(review):
+    words = review.split()
+    for i, word in enumerate(words):
+        if word.lower() == 'star' and i > 0:
+            try:
+                rating = float(words[i-1])
+                return rating
+            except ValueError:
+                pass
+    return None
+
+def generate_feedback(reviews, keywords):
+    positive_feedback = defaultdict(list)
+    negative_feedback = defaultdict(list)
+    for review in reviews.split('\n'):
+        for keyword in keywords:
+            if keyword in review.lower():
+                if 'not' in review.lower() or 'bad' in review.lower():
+                    negative_feedback[keyword].append(review)
+                else:
+                    positive_feedback[keyword].append(review)
+
+    if not positive_feedback and not negative_feedback:
+        return "No specific suggestions found. Please provide more detailed reviews.", ""
+
+    feedback_message = ""
+    if positive_feedback:
+        feedback_message += "Great aspects of the location:\n\n"
+        for keyword, reviews in positive_feedback.items():
+            feedback_message += f"- {keyword.capitalize()}: "
+            feedback_message += " ".join(reviews) + "\n"
+
+    if negative_feedback:
+        feedback_message += "\nAreas that need improvement:\n\n"
+        for keyword, reviews in negative_feedback.items():
+            feedback_message += f"- {keyword.capitalize()}: "
+            feedback_message += " ".join(reviews) + "\n"
+
+    return feedback_message, feedback_message
+
+# Create the main window
+window = tk.Tk()
+window.title("Google Reviews Analyzer")
+
+# Create a text box for pasting the reviews
+text_box = tk.Text(window, height=10, width=50)
+text_box.pack(pady=10)
+
+# Create a button to analyze the reviews
+analyze_button = tk.Button(window, text="Analyze Reviews", command=analyze_reviews)
+analyze_button.pack()
+
+# Start the main loop
+window.mainloop()
